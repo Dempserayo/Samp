@@ -28,7 +28,7 @@ export default function TextSidebar({
   }
 
   return (
-    <div className="w-20 h-full flex flex-col items-center justify-start p-4 gap-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-l border-slate-200 dark:border-slate-700 shadow-xl">
+    <div className="w-20 h-full flex flex-col items-center justify-start p-4 gap-4 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-l border-slate-200 dark:border-slate-700 shadow-xl">
       {/* Botón: Selección de Texto */}
       {textBlocks.length > 0 && (
         <button

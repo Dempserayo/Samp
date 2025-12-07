@@ -79,7 +79,7 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${isOpen ? 'w-[500px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden transition-all duration-300 relative`}>
+    <div className={`${isOpen ? 'w-[400px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden transition-all duration-300 relative`}>
       {/* Botón de toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -122,7 +122,7 @@ export default function Sidebar({
         <div className="border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => toggleSection("ayuda")}
-            className="w-full px-4 py-3 flex items-center justify-between bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between   hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
           >
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,7 +142,7 @@ export default function Sidebar({
             </svg>
           </button>
           {openSections.ayuda && (
-            <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
+            <div className="p-4 space-y-4">
               <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
                 <div>
                   <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
@@ -202,7 +202,7 @@ export default function Sidebar({
         <div className="border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => toggleSection("images")}
-            className="w-full px-4 py-3 flex items-center justify-between bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between  transition-colors"
           >
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,7 +222,7 @@ export default function Sidebar({
             </svg>
           </button>
           {openSections.images && (
-            <div className="p-4 space-y-4 bg-white dark:bg-slate-900">
+            <div className="p-4 space-y-4 ">
               {/* Input para imagen con texto */}
               <div className="flex flex-col gap-3">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Imagen con Texto</label>
@@ -297,7 +297,7 @@ export default function Sidebar({
           <div className="border border-slate-200 dark:border-slate-700  overflow-hidden">
             <button
               onClick={() => toggleSection("actions")}
-              className="w-full px-4 py-3 flex items-center justify-between bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
               <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -317,7 +317,7 @@ export default function Sidebar({
               </svg>
             </button>
             {openSections.actions && (
-              <div className="p-4 space-y-3 bg-white dark:bg-slate-900">
+              <div className="p-4 space-y-3">
           {extractedText && backgroundImage && (
             <button
               onClick={onCombine}
@@ -365,7 +365,7 @@ export default function Sidebar({
         <div className="border-t border-slate-200 dark:border-slate-700">
           <button
             onClick={() => toggleSection("extractedText")}
-            className="w-full px-4 py-3 flex items-center justify-between bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
           >
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -385,9 +385,9 @@ export default function Sidebar({
             </svg>
           </button>
           {openSections.extractedText && (
-            <div className="p-4 bg-white dark:bg-slate-900">
+            <div className="p-4">
               <p className="font-semibold mb-3 text-sm text-slate-700 dark:text-slate-200">Texto Extraído</p>
-          <div className="text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-line font-mono text-xs leading-relaxed p-3 bg-white dark:bg-slate-800  border border-slate-200 dark:border-slate-700">
+          <div className="text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-line font-mono text-xs leading-relaxed p-3 border border-slate-200 dark:border-slate-700">
             {extractedText.split("\n").map((line, index) => {
               const colonIndex = line.indexOf(":");
               if (colonIndex > 0) {

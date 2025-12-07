@@ -31,6 +31,7 @@ export default function Home() {
     position: "left-bottom",
     maxWidth: 800,
   });
+  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
 
 
   // Palabras que indican que toda la línea debe ser ignorada
@@ -452,10 +453,21 @@ export default function Home() {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="w-full h-screen flex flex-col bg-linear-to-bl from-slate-50 to-slate-100 dark:from-indigo-900 dark:to-gray-500">
+      
+      {/* Modal de Bienvenida */}
+      {showWelcomeModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/20" onClick={() => setShowWelcomeModal(false)}>
+          <div className="w-full max-w-7xl h-80 flex flex-col  justify-center items-center text-white">
+            <h1 className="text-4xl font-black uppercase">Screenshot Generator</h1>
+            <p className="text-xs">Este es un generador de Screenshots, Pulsa para continuar</p>
+          </div>
+      </div>
+      )}
       
       {/* Contenido principal: Sidebar + ImageViewer + TextSidebar */}
-      <div className="flex-1 flex flex-row overflow-hidden min-h-0 py-10">
+      {!showWelcomeModal && (
+        <div className="flex-1 flex flex-row overflow-hidden min-h-0 p-10">
         <Sidebar
           imageWithText={imageWithText}
           backgroundImage={backgroundImage}
@@ -476,9 +488,8 @@ export default function Home() {
           textBlocks={textBlocks}
           onOpenModal={setOpenTextModal}
         />
-      </div>
-
-  
+        </div>
+      )}
 
       {/* Modal de descarga */}
       <DownloadModal
