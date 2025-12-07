@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { createWorker } from "tesseract.js";
 import Sidebar, { type TextConfig } from "./components/common/Sidebar";
-import TextSidebar from "./components/common/TextSidebar";
 import ImageViewer from "./components/common/ImageViewer";
 import DownloadModal from "./components/common/DownloadModal";
 import TextSelectionModal from "./components/common/TextSelectionModal";
@@ -19,7 +18,8 @@ export default function Home() {
   const [imageWithText, setImageWithText] = useState<string | null>(null);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [extractedText, setExtractedText] = useState<string>("");
-  const [combinedImage, setCombinedImage] = useState<string | null>(null);
+  const [combinedImages, setCombinedImages] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(-1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [openTextModal, setOpenTextModal] = useState<"textSelection" | "textConfig" | null>(null);
@@ -176,7 +176,7 @@ export default function Home() {
     }
   }, [imageWithText]);
 
-  const combineTextWithBackground = async () => {
+  const combineTextWithBackground = async (createNew: boolean = false) => {
     if (!backgroundImage || !extractedText) {
       alert("Por favor, sube ambas imágenes y extrae el texto primero");
       return;
@@ -304,7 +304,7 @@ export default function Home() {
         ctx.textAlign = "center";
       }
       
-      // Dibujar texto con borde (outline) para mejor legibilidad
+      // Dibujar texto con efecto de relieve negro (múltiples capas para mejor legibilidad)
       let y = startY;
       const nameFontSize = textConfig.fontSize;
       const messageFontSize = textConfig.fontSize;
@@ -324,18 +324,58 @@ export default function Home() {
         const textColor = lineObj.isAsterisk ? purpleColor : textConfig.color;
         ctx.fillStyle = textColor;
 
-        // Dibujar borde negro
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 4;
+        // Calcular el grosor del relieve basado en el tamaño de fuente
+        const strokeWidth = Math.max(2, Math.floor(textConfig.fontSize / 8));
+        
+        // Dibujar múltiples capas de stroke para crear un efecto de relieve suave
+        // Capa exterior (más gruesa y opaca)
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+        ctx.lineWidth = strokeWidth + 2;
+        ctx.lineJoin = "round";
+        ctx.miterLimit = 2;
         ctx.strokeText(lineObj.text, x, y);
-        // Dibujar texto
+        
+        // Capa intermedia (suaviza la transición)
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.lineWidth = strokeWidth + 1;
+        ctx.strokeText(lineObj.text, x, y);
+        
+        // Capa interior (más delgada para definir el borde)
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeText(lineObj.text, x, y);
+        
+        // Dibujar el texto principal encima
         ctx.fillText(lineObj.text, x, y);
         y += lineHeight;
       });
 
       // Convertir canvas a imagen
       const resultImage = canvas.toDataURL("image/png");
-      setCombinedImage(resultImage);
+      
+      // Usar funciones de callback para acceder a los valores actuales del estado
+      // y determinar si crear una nueva imagen o actualizar la actual
+      setCurrentImageIndex(prevIndex => {
+        setCombinedImages(prevImages => {
+          // Si createNew es true o no hay imagen actual válida, crear una nueva
+          // Si createNew es false y hay una imagen actual válida, actualizar esa imagen
+          const shouldCreateNew = createNew || prevIndex < 0 || prevIndex >= prevImages.length;
+          
+          if (shouldCreateNew) {
+            // Crear una nueva imagen - el índice se actualizará después
+            return [...prevImages, resultImage];
+          } else {
+            // Actualizar la imagen actual
+            const newImages = [...prevImages];
+            newImages[prevIndex] = resultImage;
+            return newImages;
+          }
+        });
+        
+        // Actualizar el índice solo si se crea una nueva imagen
+        const shouldCreateNew = createNew || prevIndex < 0;
+        return shouldCreateNew ? (prevIndex < 0 ? 0 : prevIndex + 1) : prevIndex;
+      });
     } catch (error) {
       console.error("Error combinando imágenes:", error);
       alert("Error al combinar las imágenes");
@@ -381,9 +421,9 @@ export default function Home() {
       .map(block => block.text)
       .join("\n");
     handleExtractText(selectedText);
-    // Regenerar la imagen automáticamente
+    // Regenerar la imagen automáticamente (actualizar la actual)
     setTimeout(() => {
-      combineTextWithBackground();
+      combineTextWithBackground(false); // false = actualizar imagen actual
     }, 150);
   };
 
@@ -393,9 +433,9 @@ export default function Home() {
     setTextBlocks(updatedBlocks);
     const allText = updatedBlocks.map(block => block.text).join("\n");
     handleExtractText(allText);
-    // Regenerar la imagen automáticamente
+    // Regenerar la imagen automáticamente (actualizar la actual)
     setTimeout(() => {
-      combineTextWithBackground();
+      combineTextWithBackground(false); // false = actualizar imagen actual
     }, 150);
   };
 
@@ -405,10 +445,10 @@ export default function Home() {
       const formattedLines = formatDialogueText(providedText);
       const formattedText = formattedLines.join("\n");
       setExtractedText(formattedText);
-      // Si hay imagen de fondo, generar automáticamente
+      // Si hay imagen de fondo, generar automáticamente (actualizar la actual)
       if (backgroundImage) {
         setTimeout(() => {
-          combineTextWithBackground();
+          combineTextWithBackground(false); // false = actualizar imagen actual
         }, 100);
       }
       return;
@@ -421,27 +461,30 @@ export default function Home() {
     }
     const extracted = await extractTextFromImage(imageWithText);
     // Si hay texto extraído y hay imagen de fondo, generar automáticamente
+    // Actualizar la imagen actual si existe, o crear nueva si no hay
     if (extracted && backgroundImage) {
       // Esperar un momento para que el estado se actualice
       setTimeout(() => {
-        combineTextWithBackground();
+        combineTextWithBackground(false); // false = actualizar si existe, crear si no
       }, 100);
     }
   };
 
   const downloadImage = () => {
-    if (!combinedImage) return;
+    const currentImage = combinedImages[currentImageIndex];
+    if (!currentImage) return;
     setShowDownloadModal(true);
   };
 
   const handleDownloadWithSize = (width: number, height: number) => {
-    if (!combinedImage) return;
+    const currentImage = combinedImages[currentImageIndex];
+    if (!currentImage) return;
 
     if (width === 0 || height === 0) {
       // Descargar imagen original sin redimensionar
       const link = document.createElement("a");
       link.download = "imagen-combinada.png";
-      link.href = combinedImage;
+      link.href = currentImage;
       link.click();
       return;
     }
@@ -468,10 +511,10 @@ export default function Home() {
         link.download = `imagen-combinada-${width}x${height}.png`;
         link.href = url;
         link.click();
-        URL.revokeObjectURL(url);
-      }, "image/png");
+      URL.revokeObjectURL(url);
+    }, "image/png");
     };
-    img.src = combinedImage;
+    img.src = currentImage;
   };
 
   return (
@@ -482,30 +525,38 @@ export default function Home() {
           imageWithText={imageWithText}
           backgroundImage={backgroundImage}
           extractedText={extractedText}
-          combinedImage={combinedImage}
+          combinedImage={combinedImages[currentImageIndex] || null}
           isProcessing={isProcessing}
+          textBlocks={textBlocks}
           onImageWithTextChange={setImageWithText}
           onBackgroundImageChange={setBackgroundImage}
           onExtractText={handleExtractText}
           onExtractedTextChange={(text) => {
             setExtractedText(text);
-            // Regenerar la imagen automáticamente si hay imagen de fondo
+            // Regenerar la imagen automáticamente si hay imagen de fondo (actualizar la actual)
             if (backgroundImage && text.trim()) {
               setTimeout(() => {
-                combineTextWithBackground();
+                combineTextWithBackground(false); // false = actualizar imagen actual
               }, 300);
             }
           }}
-          onCombine={combineTextWithBackground}
+          onCombine={() => combineTextWithBackground(true)} // true = crear nueva imagen
           onDownload={downloadImage}
-        />
-        <ImageViewer combinedImage={combinedImage} />
-        <TextSidebar
-          imageWithText={imageWithText}
-          backgroundImage={backgroundImage}
-          extractedText={extractedText}
-          textBlocks={textBlocks}
           onOpenModal={setOpenTextModal}
+          onChangeBackground={(newBackground) => {
+            setBackgroundImage(newBackground);
+            // Regenerar la imagen actual con el nuevo fondo
+            if (extractedText) {
+              setTimeout(() => {
+                combineTextWithBackground(false); // false = actualizar imagen actual
+              }, 100);
+            }
+          }}
+        />
+        <ImageViewer 
+          combinedImages={combinedImages}
+          currentImageIndex={currentImageIndex}
+          onImageChange={setCurrentImageIndex}
         />
       </div>
 
@@ -514,7 +565,7 @@ export default function Home() {
         isOpen={showDownloadModal}
         onClose={() => setShowDownloadModal(false)}
         onDownload={handleDownloadWithSize}
-        currentImage={combinedImage}
+        currentImage={combinedImages[currentImageIndex] || null}
       />
 
       {/* Modal de selección de texto */}
@@ -539,10 +590,10 @@ export default function Home() {
         onTextConfigChange={setTextConfig}
         onSave={(config) => {
           setTextConfig(config);
-          // Regenerar la imagen con la nueva configuración
+          // Regenerar la imagen con la nueva configuración (actualizar la actual)
           if (backgroundImage && extractedText) {
             setTimeout(() => {
-              combineTextWithBackground();
+              combineTextWithBackground(false); // false = actualizar imagen actual
             }, 100);
           }
         }}

@@ -10,18 +10,27 @@ export type TextConfig = {
   maxWidth: number;
 };
 
+interface TextBlock {
+  id: string;
+  text: string;
+  selected: boolean;
+}
+
 interface SidebarProps {
   imageWithText: string | null;
   backgroundImage: string | null;
   extractedText: string;
   combinedImage: string | null;
   isProcessing: boolean;
+  textBlocks: TextBlock[];
   onImageWithTextChange: (image: string | null) => void;
   onBackgroundImageChange: (image: string | null) => void;
   onExtractText: (text?: string) => void;
   onExtractedTextChange: (text: string) => void;
   onCombine: () => void;
   onDownload: () => void;
+  onOpenModal: (modalType: "textSelection" | "textConfig") => void;
+  onChangeBackground: (image: string) => void;
 }
 
 export default function Sidebar({
@@ -30,19 +39,24 @@ export default function Sidebar({
   extractedText,
   combinedImage,
   isProcessing,
+  textBlocks,
   onImageWithTextChange,
   onBackgroundImageChange,
   onExtractText,
   onExtractedTextChange,
   onCombine,
   onDownload,
+  onOpenModal,
+  onChangeBackground,
 }: SidebarProps) {
   const textImageRef = useRef<HTMLInputElement>(null);
   const backgroundImageRef = useRef<HTMLInputElement>(null);
+  const changeBackgroundRef = useRef<HTMLInputElement>(null);
   
   const [isOpen, setIsOpen] = useState(true);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(null);
+  const [isChangingBackground, setIsChangingBackground] = useState(false);
   const [openSections, setOpenSections] = useState({
     ayuda: false,
     images: true,
@@ -51,10 +65,27 @@ export default function Sidebar({
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
+    setOpenSections((prev) => {
+      // Si la sección que se está abriendo ya está abierta, cerrarla
+      // Si se está abriendo una nueva, cerrar todas las demás y abrir solo esa
+      const isCurrentlyOpen = prev[section];
+      if (isCurrentlyOpen) {
+        // Cerrar la sección actual
+        return {
+          ...prev,
+          [section]: false,
+        };
+      } else {
+        // Cerrar todas las secciones y abrir solo la seleccionada
+        return {
+          ayuda: false,
+          images: false,
+          actions: false,
+          extractedText: false,
+          [section]: true,
+        };
+      }
+    });
   };
 
   const handleTextImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +126,32 @@ export default function Sidebar({
     setShowCropModal(false);
     if (backgroundImageRef.current) {
       backgroundImageRef.current.value = "";
+    }
+  };
+
+  const handleChangeBackground = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setIsChangingBackground(true);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const newBackground = event.target.result as string;
+          setTempBackgroundImage(newBackground);
+          setShowCropModal(true);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleChangeBackgroundCropComplete = (croppedImage: string) => {
+    onChangeBackground(croppedImage);
+    setTempBackgroundImage(null);
+    setShowCropModal(false);
+    setIsChangingBackground(false);
+    if (changeBackgroundRef.current) {
+      changeBackgroundRef.current.value = "";
     }
   };
 
@@ -255,7 +312,7 @@ export default function Sidebar({
                 />
                 <button
                   onClick={() => textImageRef.current?.click()}
-                  className="px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm flex items-center justify-center gap-2"
+                  className="px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm flex items-center justify-start gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -266,7 +323,7 @@ export default function Sidebar({
                   <button
                     onClick={() => onExtractText()}
                     disabled={isProcessing}
-                    className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-start gap-2"
                   >
                     {isProcessing ? (
                       <>
@@ -300,7 +357,7 @@ export default function Sidebar({
                 />
                 <button
                   onClick={() => backgroundImageRef.current?.click()}
-                  className="px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm flex items-center justify-center gap-2"
+                  className="px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm flex items-center justify-start gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -338,43 +395,91 @@ export default function Sidebar({
             </button>
             {openSections.actions && (
               <div className="p-4 space-y-3">
-          {extractedText && backgroundImage && (
-            <button
-              onClick={onCombine}
-              disabled={isProcessing}
-              className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isProcessing ? (
-                <>
-                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Procesando...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  Generar Imagen Combinada
-                </>
-              )}
-            </button>
-          )}
-          {combinedImage && (
-            <button
-              onClick={onDownload}
-              className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Descargar Imagen
-            </button>
-          )}
-            </div>
-          )}
+                {/* Botón: Selección de Texto */}
+                {textBlocks.length > 0 && (
+                  <button
+                    onClick={() => onOpenModal("textSelection")}
+                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-start gap-2"
+                    title="Selección de Texto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Selección de Texto
+                  </button>
+                )}
+
+                {/* Botón: Configuración del Texto */}
+                {extractedText && (
+                  <button
+                    onClick={() => onOpenModal("textConfig")}
+                    className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-start gap-2"
+                    title="Configuración del Texto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    Configuración del Texto
+                  </button>
+                )}
+
+                {extractedText && backgroundImage && (
+                  <button
+                    onClick={onCombine}
+                    disabled={isProcessing}
+                    className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-start gap-2"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        Generar Imagen Combinada
+                      </>
+                    )}
+                  </button>
+                )}
+                {combinedImage && (
+                  <>
+                    <input
+                      ref={changeBackgroundRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleChangeBackground}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => changeBackgroundRef.current?.click()}
+                      disabled={isProcessing}
+                      className="w-full px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Cambiar fondo de la imagen generada"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Cambiar Fondo
+                    </button>
+                    <button
+                      onClick={onDownload}
+                      className="w-full px-4 py-3 bg-slate-500 hover:bg-slate-600 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-start gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Descargar Imagen
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
         </div>
@@ -424,9 +529,26 @@ export default function Sidebar({
       {tempBackgroundImage && (
         <CropModal
           isOpen={showCropModal}
-          onClose={handleCropCancel}
+          onClose={() => {
+            if (isChangingBackground) {
+              setTempBackgroundImage(null);
+              setShowCropModal(false);
+              setIsChangingBackground(false);
+              if (changeBackgroundRef.current) {
+                changeBackgroundRef.current.value = "";
+              }
+            } else {
+              handleCropCancel();
+            }
+          }}
           imageSrc={tempBackgroundImage}
-          onCrop={handleCropComplete}
+          onCrop={(croppedImage) => {
+            if (isChangingBackground) {
+              handleChangeBackgroundCropComplete(croppedImage);
+            } else {
+              handleCropComplete(croppedImage);
+            }
+          }}
         />
       )}
     </div>

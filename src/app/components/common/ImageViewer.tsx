@@ -4,11 +4,17 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 
 interface ImageViewerProps {
-  combinedImage: string | null;
+  combinedImages: string[];
+  currentImageIndex: number;
+  onImageChange: (index: number) => void;
 }
 
-export default function ImageViewer({ combinedImage }: ImageViewerProps) {
+export default function ImageViewer({ combinedImages, currentImageIndex, onImageChange }: ImageViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
+  
+  const currentImage = currentImageIndex >= 0 && currentImageIndex < combinedImages.length 
+    ? combinedImages[currentImageIndex] 
+    : null;
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -30,15 +36,15 @@ export default function ImageViewer({ combinedImage }: ImageViewerProps) {
 
   return (
     <>
-      <div className="flex-1 h-full bg-white/20 p-10 shadow-2xl">
+      <div className="flex-1 h-full bg-white/20 p-10 shadow-2xl relative">
         <div className="h-full flex items-center justify-center">
-          {combinedImage ? (
+          {currentImage ? (
             <div 
               className="relative w-full h-full cursor-zoom-in"
               onClick={() => setIsZoomed(true)}
             >
               <Image
-                src={combinedImage}
+                src={currentImage}
                 alt="Imagen combinada"
                 fill
                 className="object-contain"
@@ -57,16 +63,63 @@ export default function ImageViewer({ combinedImage }: ImageViewerProps) {
             </div>
           )}
         </div>
+
+        {/* Galería de miniaturas */}
+        {combinedImages.length > 0 && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-3 max-h-[40vh] overflow-y-auto p-2 bg-gradient-to-b from-black/40 via-black/50 to-black/40 backdrop-blur-md shadow-2xl border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            {combinedImages.map((image, index) => (
+              <button
+                key={index}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onImageChange(index);
+                }}
+                className={`relative w-10 h-10  overflow-hidden border-2 transition-all duration-300 transform ${
+                  index === currentImageIndex
+                    ? "border-blue-400 ring-4 ring-blue-400/30 scale-110 shadow-lg shadow-blue-500/50"
+                    : "border-white/20 hover:border-white/60 hover:scale-105 hover:shadow-lg hover:shadow-white/20"
+                }`}
+                aria-label={`Ver imagen ${index + 1}`}
+              >
+                <Image
+                  src={image}
+                  alt={`Miniatura ${index + 1}`}
+                  fill
+                  className={`object-cover transition-transform duration-300 ${
+                    index === currentImageIndex ? "scale-105" : "hover:scale-110"
+                  }`}
+                  unoptimized
+                />
+                {/* Overlay con gradiente */}
+                <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 ${
+                  index === currentImageIndex ? "opacity-100" : "opacity-60"
+                }`} />
+                {/* Número de imagen */}
+                <div className={`absolute bottom-0 left-0 right-0 text-white text-xs font-semibold text-center py-1.5 transition-all duration-300 ${
+                  index === currentImageIndex 
+                    ? "bg-gradient-to-t from-blue-500/90 to-blue-400/70" 
+                    : "bg-gradient-to-t from-black/80 to-black/60"
+                }`}>
+                  {index + 1}
+                </div>
+                {/* Indicador de selección */}
+                {index === currentImageIndex && (
+                  <div className="absolute top-1 right-1 w-3 h-3 bg-blue-400 ring-2 ring-white shadow-lg animate-pulse" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {isZoomed && combinedImage && (
+      {isZoomed && currentImage && (
         <div
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setIsZoomed(false)}
         >
           <div className="relative w-full h-full max-w-7xl max-h-[90vh]">
             <Image
-              src={combinedImage}
+              src={currentImage}
               alt="Imagen ampliada"
               fill
               className="object-contain"
