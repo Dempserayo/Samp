@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { type TextConfig } from "./Sidebar";
 
 interface TextConfigModalProps {
@@ -7,6 +8,7 @@ interface TextConfigModalProps {
   onClose: () => void;
   textConfig: TextConfig;
   onTextConfigChange: (config: TextConfig) => void;
+  onSave: (config: TextConfig) => void;
 }
 
 export default function TextConfigModal({
@@ -14,7 +16,22 @@ export default function TextConfigModal({
   onClose,
   textConfig,
   onTextConfigChange,
+  onSave,
 }: TextConfigModalProps) {
+  const [localConfig, setLocalConfig] = useState<TextConfig>(textConfig);
+
+  // Actualizar el estado local cuando cambia textConfig o se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      setLocalConfig(textConfig);
+    }
+  }, [textConfig, isOpen]);
+
+  const handleSave = () => {
+    onSave(localConfig);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -39,21 +56,21 @@ export default function TextConfigModal({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Tamaño de fuente</label>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{textConfig.fontSize}px</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{localConfig.fontSize}px</span>
               </div>
               <input
                 type="range"
-                min="16"
+                min="10"
                 max="120"
-                value={textConfig.fontSize}
-                onChange={(e) => onTextConfigChange({ ...textConfig, fontSize: parseInt(e.target.value) })}
+                value={localConfig.fontSize}
+                onChange={(e) => setLocalConfig({ ...localConfig, fontSize: parseInt(e.target.value) })}
                 className="w-full h-2 bg-slate-200 dark:bg-slate-700 appearance-none cursor-pointer accent-blue-500"
               />
               <div className="flex gap-2 mt-2">
                 <button
-                  onClick={() => onTextConfigChange({ ...textConfig, fontSize: 24 })}
+                  onClick={() => setLocalConfig({ ...localConfig, fontSize: 24 })}
                   className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                    textConfig.fontSize === 24
+                    localConfig.fontSize === 24
                       ? "bg-blue-500 text-white shadow-md"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
                   }`}
@@ -61,9 +78,9 @@ export default function TextConfigModal({
                   Pequeño
                 </button>
                 <button
-                  onClick={() => onTextConfigChange({ ...textConfig, fontSize: 48 })}
+                  onClick={() => setLocalConfig({ ...localConfig, fontSize: 48 })}
                   className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                    textConfig.fontSize === 48
+                    localConfig.fontSize === 48
                       ? "bg-blue-500 text-white shadow-md"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
                   }`}
@@ -71,9 +88,9 @@ export default function TextConfigModal({
                   Mediano
                 </button>
                 <button
-                  onClick={() => onTextConfigChange({ ...textConfig, fontSize: 72 })}
+                  onClick={() => setLocalConfig({ ...localConfig, fontSize: 72 })}
                   className={`flex-1 px-3 py-1.5 text-xs font-medium transition-all ${
-                    textConfig.fontSize === 72
+                    localConfig.fontSize === 72
                       ? "bg-blue-500 text-white shadow-md"
                       : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
                   }`}
@@ -87,12 +104,12 @@ export default function TextConfigModal({
               <div className="flex items-center gap-3">
                 <input
                   type="color"
-                  value={textConfig.color}
-                  onChange={(e) => onTextConfigChange({ ...textConfig, color: e.target.value })}
+                  value={localConfig.color}
+                  onChange={(e) => setLocalConfig({ ...localConfig, color: e.target.value })}
                   className="w-12 h-10 border-2 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
                 <div className="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-700 text-xs font-mono text-slate-700 dark:text-slate-300">
-                  {textConfig.color}
+                  {localConfig.color}
                 </div>
               </div>
             </div>
@@ -112,9 +129,9 @@ export default function TextConfigModal({
                 ].map(({ pos, label }) => (
                   <button
                     key={pos}
-                    onClick={() => onTextConfigChange({ ...textConfig, position: pos as TextConfig["position"] })}
+                    onClick={() => setLocalConfig({ ...localConfig, position: pos as TextConfig["position"] })}
                     className={`px-2 py-2 text-xs font-medium transition-all ${
-                      textConfig.position === pos
+                      localConfig.position === pos
                         ? "bg-blue-500 text-white shadow-md"
                         : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600"
                     }`}
@@ -127,17 +144,33 @@ export default function TextConfigModal({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Ancho máximo</label>
-                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{textConfig.maxWidth}px</span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">{localConfig.maxWidth}px</span>
               </div>
               <input
                 type="range"
                 min="200"
                 max="1200"
-                value={textConfig.maxWidth}
-                onChange={(e) => onTextConfigChange({ ...textConfig, maxWidth: parseInt(e.target.value) })}
+                value={localConfig.maxWidth}
+                onChange={(e) => setLocalConfig({ ...localConfig, maxWidth: parseInt(e.target.value) })}
                 className="w-full h-2 bg-slate-200 dark:bg-slate-700 appearance-none cursor-pointer accent-blue-500"
               />
             </div>
+          </div>
+
+          {/* Botón de Guardar */}
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors rounded"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors rounded shadow-md hover:shadow-lg"
+            >
+              Guardar
+            </button>
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import CropModal from "./CropModal";
 
 export type TextConfig = {
   fontSize: number;
@@ -18,6 +19,7 @@ interface SidebarProps {
   onImageWithTextChange: (image: string | null) => void;
   onBackgroundImageChange: (image: string | null) => void;
   onExtractText: (text?: string) => void;
+  onExtractedTextChange: (text: string) => void;
   onCombine: () => void;
   onDownload: () => void;
 }
@@ -31,6 +33,7 @@ export default function Sidebar({
   onImageWithTextChange,
   onBackgroundImageChange,
   onExtractText,
+  onExtractedTextChange,
   onCombine,
   onDownload,
 }: SidebarProps) {
@@ -38,6 +41,8 @@ export default function Sidebar({
   const backgroundImageRef = useRef<HTMLInputElement>(null);
   
   const [isOpen, setIsOpen] = useState(true);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempBackgroundImage, setTempBackgroundImage] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState({
     ayuda: false,
     images: true,
@@ -71,15 +76,30 @@ export default function Sidebar({
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          onBackgroundImageChange(event.target.result as string);
+          setTempBackgroundImage(event.target.result as string);
+          setShowCropModal(true);
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
+  const handleCropComplete = (croppedImage: string) => {
+    onBackgroundImageChange(croppedImage);
+    setTempBackgroundImage(null);
+    setShowCropModal(false);
+  };
+
+  const handleCropCancel = () => {
+    setTempBackgroundImage(null);
+    setShowCropModal(false);
+    if (backgroundImageRef.current) {
+      backgroundImageRef.current.value = "";
+    }
+  };
+
   return (
-    <div className={`${isOpen ? 'w-[400px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-r border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden transition-all duration-300 relative`}>
+    <div className={`${isOpen ? 'w-[400px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm shadow-2xl overflow-hidden transition-all duration-300 relative`}>
       {/* Botón de toggle */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -386,26 +406,28 @@ export default function Sidebar({
           </button>
           {openSections.extractedText && (
             <div className="p-4">
-              <p className="font-semibold mb-3 text-sm text-slate-700 dark:text-slate-200">Texto Extraído</p>
-          <div className="text-slate-600 dark:text-slate-400 max-h-40 overflow-y-auto whitespace-pre-line font-mono text-xs leading-relaxed p-3 border border-slate-200 dark:border-slate-700">
-            {extractedText.split("\n").map((line, index) => {
-              const colonIndex = line.indexOf(":");
-              if (colonIndex > 0) {
-                const name = line.substring(0, colonIndex);
-                const message = line.substring(colonIndex + 1);
-                return (
-                  <div key={index} className="mb-1.5">
-                    <span className="font-bold text-slate-600 dark:text-slate-400">{name}:</span>
-                    <span className="ml-1">{message}</span>
-                  </div>
-                );
-              }
-              return <div key={index} className="mb-1.5">{line}</div>;
-            })}
-              </div>
+              <textarea
+                value={extractedText}
+                onChange={(e) => onExtractedTextChange(e.target.value)}
+                className="w-full min-h-[120px] max-h-40 overflow-y-auto text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md p-3 font-mono text-xs leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-slate-500 dark:focus:ring-slate-400 focus:border-transparent"
+                placeholder="Edita el texto aquí..."
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">
+                💡 Edita el texto y la imagen se actualizará automáticamente
+              </p>
             </div>
           )}
         </div>
+      )}
+
+      {/* Modal de recorte */}
+      {tempBackgroundImage && (
+        <CropModal
+          isOpen={showCropModal}
+          onClose={handleCropCancel}
+          imageSrc={tempBackgroundImage}
+          onCrop={handleCropComplete}
+        />
       )}
     </div>
   );

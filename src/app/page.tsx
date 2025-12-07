@@ -31,7 +31,6 @@ export default function Home() {
     position: "left-bottom",
     maxWidth: 800,
   });
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
 
 
   // Palabras que indican que toda la línea debe ser ignorada
@@ -353,6 +352,29 @@ export default function Home() {
     );
   };
 
+  const moveBlock = (blockId: string, direction: "up" | "down") => {
+    setTextBlocks(prev => {
+      const index = prev.findIndex(block => block.id === blockId);
+      if (index === -1) return prev;
+
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+
+      const newBlocks = [...prev];
+      [newBlocks[index], newBlocks[newIndex]] = [newBlocks[newIndex], newBlocks[index]];
+      return newBlocks;
+    });
+  };
+
+  const reorderBlocks = (fromIndex: number, toIndex: number) => {
+    setTextBlocks(prev => {
+      const newBlocks = [...prev];
+      const [movedBlock] = newBlocks.splice(fromIndex, 1);
+      newBlocks.splice(toIndex, 0, movedBlock);
+      return newBlocks;
+    });
+  };
+
   const handleApplySelectedText = () => {
     const selectedText = textBlocks
       .filter(block => block.selected)
@@ -453,21 +475,9 @@ export default function Home() {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col bg-linear-to-bl from-slate-50 to-slate-100 dark:from-indigo-900 dark:to-gray-500">
-      
-      {/* Modal de Bienvenida */}
-      {showWelcomeModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/20" onClick={() => setShowWelcomeModal(false)}>
-          <div className="w-full max-w-7xl h-80 flex flex-col  justify-center items-center text-white">
-            <h1 className="text-4xl font-black uppercase">Screenshot Generator</h1>
-            <p className="text-xs">Este es un generador de Screenshots, Pulsa para continuar</p>
-          </div>
-      </div>
-      )}
-      
+    <div className="w-full h-screen flex flex-col bg-linear-to-b from-slate-50 to-slate-100 dark:from-indigo-900 dark:to-gray-800">
       {/* Contenido principal: Sidebar + ImageViewer + TextSidebar */}
-      {!showWelcomeModal && (
-        <div className="flex-1 flex flex-row overflow-hidden min-h-0 p-10">
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0 p-4 gap-2">
         <Sidebar
           imageWithText={imageWithText}
           backgroundImage={backgroundImage}
@@ -477,6 +487,15 @@ export default function Home() {
           onImageWithTextChange={setImageWithText}
           onBackgroundImageChange={setBackgroundImage}
           onExtractText={handleExtractText}
+          onExtractedTextChange={(text) => {
+            setExtractedText(text);
+            // Regenerar la imagen automáticamente si hay imagen de fondo
+            if (backgroundImage && text.trim()) {
+              setTimeout(() => {
+                combineTextWithBackground();
+              }, 300);
+            }
+          }}
           onCombine={combineTextWithBackground}
           onDownload={downloadImage}
         />
@@ -488,8 +507,7 @@ export default function Home() {
           textBlocks={textBlocks}
           onOpenModal={setOpenTextModal}
         />
-        </div>
-      )}
+      </div>
 
       {/* Modal de descarga */}
       <DownloadModal
@@ -509,6 +527,8 @@ export default function Home() {
         onToggleBlockSelection={toggleBlockSelection}
         onApplySelectedText={handleApplySelectedText}
         onAutoMode={handleAutoMode}
+        onMoveBlock={moveBlock}
+        onReorderBlocks={reorderBlocks}
       />
 
       {/* Modal de configuración de texto */}
@@ -517,6 +537,15 @@ export default function Home() {
         onClose={() => setOpenTextModal(null)}
         textConfig={textConfig}
         onTextConfigChange={setTextConfig}
+        onSave={(config) => {
+          setTextConfig(config);
+          // Regenerar la imagen con la nueva configuración
+          if (backgroundImage && extractedText) {
+            setTimeout(() => {
+              combineTextWithBackground();
+            }, 100);
+          }
+        }}
       />
     </div>
   );

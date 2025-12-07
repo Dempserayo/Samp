@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 interface TextBlock {
   id: string;
   text: string;
@@ -15,6 +17,8 @@ interface TextSelectionModalProps {
   onToggleBlockSelection: (blockId: string) => void;
   onApplySelectedText: () => void;
   onAutoMode: () => void;
+  onMoveBlock: (blockId: string, direction: "up" | "down") => void;
+  onReorderBlocks: (fromIndex: number, toIndex: number) => void;
 }
 
 export default function TextSelectionModal({
@@ -26,7 +30,41 @@ export default function TextSelectionModal({
   onToggleBlockSelection,
   onApplySelectedText,
   onAutoMode,
+  onMoveBlock,
+  onReorderBlocks,
 }: TextSelectionModalProps) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      onReorderBlocks(draggedIndex, dropIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -97,26 +135,50 @@ export default function TextSelectionModal({
                     </div>
                   </div>
                 ) : (
-                  textBlocks.map((block) => (
+                  textBlocks.map((block, index) => (
                     <div
                       key={block.id}
-                      onClick={() => onToggleBlockSelection(block.id)}
-                      className={`p-2 cursor-pointer transition-all ${
-                        block.selected
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragLeave={handleDragLeave}
+                      className={`p-2 transition-all cursor-move rounded ${
+                        draggedIndex === index
+                          ? "opacity-50 scale-95"
+                          : dragOverIndex === index
+                          ? "border-t-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : block.selected
                           ? "bg-blue-100 dark:bg-blue-900/30 border-2 border-blue-500"
                           : "bg-white dark:bg-slate-700 border-2 border-transparent hover:bg-slate-100 dark:hover:bg-slate-600"
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={block.selected}
-                          onChange={() => onToggleBlockSelection(block.id)}
-                          className="mt-1"
-                        />
-                        <p className="text-xs text-slate-700 dark:text-slate-300 flex-1 whitespace-pre-wrap wrap-break-word">
-                          {block.text}
-                        </p>
+                        <div className="flex items-center gap-2 flex-1">
+                          <div 
+                            className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 shrink-0"
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                            </svg>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={block.selected}
+                            onChange={() => onToggleBlockSelection(block.id)}
+                            className="mt-1"
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          />
+                          <p 
+                            onClick={() => onToggleBlockSelection(block.id)}
+                            className="text-xs text-slate-700 dark:text-slate-300 flex-1 whitespace-pre-wrap wrap-break-word cursor-pointer"
+                          >
+                            {block.text}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))
