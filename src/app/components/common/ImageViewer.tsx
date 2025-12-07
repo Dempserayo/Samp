@@ -8,10 +8,10 @@ interface ImageViewerProps {
 
 export default function ImageViewer({ combinedImage }: ImageViewerProps) {
   return (
-    <div className="flex-1 h-full ">
+    <div className="flex-1 h-full">
       <div className="h-full flex items-center justify-center">
         {combinedImage ? (
-          <div className="relative w-full h-full ">
+          <div className="relative w-full h-full">
             <Image
               src={combinedImage}
               alt="Imagen combinada"

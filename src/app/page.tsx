@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createWorker } from "tesseract.js";
-import Sidebar, { type TextConfig } from "./components/Sidebar";
-import ImageViewer from "./components/ImageViewer";
+import Sidebar, { type TextConfig } from "./components/common/Sidebar";
+import TextSidebar from "./components/common/TextSidebar";
+import ImageViewer from "./components/common/ImageViewer";
+import DownloadModal from "./components/common/DownloadModal";
+import TextSelectionModal from "./components/common/TextSelectionModal";
+import TextConfigModal from "./components/common/TextConfigModal";
+
+interface TextBlock {
+  id: string;
+  text: string;
+  selected: boolean;
+}
   
 export default function Home() {
   const [imageWithText, setImageWithText] = useState<string | null>(null);
@@ -11,6 +21,10 @@ export default function Home() {
   const [extractedText, setExtractedText] = useState<string>("");
   const [combinedImage, setCombinedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [openTextModal, setOpenTextModal] = useState<"textSelection" | "textConfig" | null>(null);
+  const [textBlocks, setTextBlocks] = useState<TextBlock[]>([]);
+  const [isExtractingText, setIsExtractingText] = useState(false);
   const [textConfig, setTextConfig] = useState<TextConfig>({
     fontSize: 16,
     color: "#FFFFFF",
@@ -19,9 +33,55 @@ export default function Home() {
   });
 
 
+  // Palabras que indican que toda la línea debe ser ignorada
+  const ignoredWords = [
+    "screenshot",
+    "screenshots",
+    "captura",
+    "capturas",
+    "pantalla",
+    "imagen",
+    "image",
+    "photo",
+    "foto"
+  ];
+
+  const filterIgnoredWords = (text: string): string => {
+    // Dividir en líneas para procesar cada una
+    const lines = text.split(/\n/);
+    
+    // Filtrar líneas: eliminar cualquier línea que contenga palabras ignoradas
+    const filteredLines = lines.filter(line => {
+      const lineLower = line.toLowerCase().trim();
+      
+      // Si la línea contiene alguna palabra ignorada, eliminar toda la línea
+      const containsIgnoredWord = ignoredWords.some(ignoredWord => 
+        lineLower.includes(ignoredWord.toLowerCase())
+      );
+      
+      // Si contiene una palabra ignorada, no incluir esta línea
+      if (containsIgnoredWord) {
+        return false;
+      }
+      
+      // Mantener la línea si no contiene palabras ignoradas y no está vacía
+      return line.trim().length > 0;
+    });
+    
+    // Limpiar espacios múltiples dentro de cada línea
+    const cleanedLines = filteredLines.map(line => 
+      line.replace(/\s+/g, " ").trim()
+    ).filter(line => line.length > 0);
+    
+    return cleanedLines.join("\n");
+  };
+
   const formatDialogueText = (text: string): string[] => {
+    // Primero filtrar palabras ignoradas
+    const filteredText = filterIgnoredWords(text);
+    
     // Dividir el texto en líneas
-    const lines = text.split(/\n/).filter(line => line.trim().length > 0);
+    const lines = filteredText.split(/\n/).filter(line => line.trim().length > 0);
     const formattedLines: string[] = [];
 
     lines.forEach((line) => {
@@ -57,6 +117,33 @@ export default function Home() {
     return formattedLines;
   };
 
+  const extractTextBlocks = async (imageSrc: string) => {
+    setIsExtractingText(true);
+    try {
+      const worker = await createWorker("spa");
+      const { data: { text } } = await worker.recognize(imageSrc);
+      await worker.terminate();
+      
+      const rawText = text.trim();
+      // Dividir en líneas y crear bloques
+      const lines = rawText.split(/\n/).filter(line => line.trim().length > 0);
+      const blocks: TextBlock[] = lines.map((line, index) => ({
+        id: `block-${index}`,
+        text: line.trim(),
+        selected: true, // Por defecto todos seleccionados
+      }));
+      
+      setTextBlocks(blocks);
+      return blocks;
+    } catch (error) {
+      console.error("Error extrayendo texto:", error);
+      alert("Error al extraer el texto de la imagen");
+      return [];
+    } finally {
+      setIsExtractingText(false);
+    }
+  };
+
   const extractTextFromImage = async (imageSrc: string) => {
     setIsProcessing(true);
     try {
@@ -79,6 +166,15 @@ export default function Home() {
       setIsProcessing(false);
     }
   };
+
+  // Efecto para extraer bloques de texto cuando cambia la imagen
+  useEffect(() => {
+    if (imageWithText) {
+      extractTextBlocks(imageWithText);
+    } else {
+      setTextBlocks([]);
+    }
+  }, [imageWithText]);
 
   const combineTextWithBackground = async () => {
     if (!backgroundImage || !extractedText) {
@@ -115,16 +211,19 @@ export default function Home() {
 
       // Dividir el texto en diálogos (cada línea es un diálogo)
       const dialogueLines = extractedText.split("\n").filter(line => line.trim().length > 0);
-      const renderedLines: { text: string; isName: boolean }[] = [];
+      const renderedLines: { text: string; isName: boolean; isAsterisk: boolean }[] = [];
 
       dialogueLines.forEach((dialogue) => {
-        const colonIndex = dialogue.indexOf(":");
+        const trimmedDialogue = dialogue.trim();
+        const isAsteriskDialogue = trimmedDialogue.startsWith("*");
+        
+        // Si comienza con *, quitar el asterisco para el procesamiento
+        const dialogueToProcess = isAsteriskDialogue ? trimmedDialogue.substring(1).trim() : trimmedDialogue;
+        
+        const colonIndex = dialogueToProcess.indexOf(":");
         if (colonIndex > 0) {
-          const name = dialogue.substring(0, colonIndex).trim();
-          const message = dialogue.substring(colonIndex + 1).trim();
-          
-          // Agregar nombre
-          renderedLines.push({ text: `${name}:`, isName: true });
+          const name = dialogueToProcess.substring(0, colonIndex).trim();
+          const message = dialogueToProcess.substring(colonIndex + 1).trim();
           
           // Configurar fuente para medir el mensaje
           ctx.font = `${textConfig.fontSize}px Arial`;
@@ -132,23 +231,40 @@ export default function Home() {
           // Dividir el mensaje en múltiples líneas si es muy largo
           const words = message.split(" ");
           let currentLine = "";
+          let isFirstLine = true;
           
           words.forEach((word) => {
-            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            // Construir la línea de prueba (currentLine siempre contiene solo palabras del mensaje)
+            const testMessageLine = currentLine ? `${currentLine} ${word}` : word;
+            const testLine = isFirstLine ? `${name}: ${testMessageLine}` : testMessageLine;
+            
             const metrics = ctx.measureText(testLine);
             if (metrics.width > textConfig.maxWidth && currentLine) {
-              renderedLines.push({ text: currentLine, isName: false });
+              // Guardar la línea actual
+              if (isFirstLine) {
+                renderedLines.push({ text: `${name}: ${currentLine}`, isName: false, isAsterisk: isAsteriskDialogue });
+                isFirstLine = false;
+              } else {
+                renderedLines.push({ text: currentLine, isName: false, isAsterisk: isAsteriskDialogue });
+              }
               currentLine = word;
             } else {
-              currentLine = testLine;
+              // Continuar agregando palabras a la línea actual
+              currentLine = testMessageLine;
             }
           });
+          
+          // Agregar la última línea
           if (currentLine) {
-            renderedLines.push({ text: currentLine, isName: false });
+            if (isFirstLine) {
+              renderedLines.push({ text: `${name}: ${currentLine}`, isName: false, isAsterisk: isAsteriskDialogue });
+            } else {
+              renderedLines.push({ text: currentLine, isName: false, isAsterisk: isAsteriskDialogue });
+            }
           }
         } else {
           // Si no tiene formato de diálogo, agregarlo tal cual
-          renderedLines.push({ text: dialogue, isName: false });
+          renderedLines.push({ text: dialogueToProcess, isName: false, isAsterisk: isAsteriskDialogue });
         }
       });
 
@@ -192,6 +308,8 @@ export default function Home() {
       let y = startY;
       const nameFontSize = textConfig.fontSize;
       const messageFontSize = textConfig.fontSize;
+      // Color morado para diálogos con asterisco (similar al tono común en textos)
+      const purpleColor = "#e0bbfd"; // Color morado estándar
 
       renderedLines.forEach((lineObj) => {
         if (lineObj.isName) {
@@ -201,6 +319,10 @@ export default function Home() {
           // Estilo para el mensaje
           ctx.font = `${messageFontSize}px Arial`;
         }
+
+        // Determinar el color del texto: morado si es diálogo con asterisco, sino el color configurado
+        const textColor = lineObj.isAsterisk ? purpleColor : textConfig.color;
+        ctx.fillStyle = textColor;
 
         // Dibujar borde negro
         ctx.strokeStyle = "#000000";
@@ -222,7 +344,54 @@ export default function Home() {
     }
   };
 
-  const handleExtractText = async () => {
+  const toggleBlockSelection = (blockId: string) => {
+    setTextBlocks(prev => 
+      prev.map(block => 
+        block.id === blockId ? { ...block, selected: !block.selected } : block
+      )
+    );
+  };
+
+  const handleApplySelectedText = () => {
+    const selectedText = textBlocks
+      .filter(block => block.selected)
+      .map(block => block.text)
+      .join("\n");
+    handleExtractText(selectedText);
+    // Regenerar la imagen automáticamente
+    setTimeout(() => {
+      combineTextWithBackground();
+    }, 150);
+  };
+
+  const handleAutoMode = () => {
+    // Seleccionar todos los bloques y aplicar
+    const updatedBlocks = textBlocks.map(block => ({ ...block, selected: true }));
+    setTextBlocks(updatedBlocks);
+    const allText = updatedBlocks.map(block => block.text).join("\n");
+    handleExtractText(allText);
+    // Regenerar la imagen automáticamente
+    setTimeout(() => {
+      combineTextWithBackground();
+    }, 150);
+  };
+
+  const handleExtractText = async (providedText?: string) => {
+    if (providedText) {
+      // Si se proporciona texto directamente (desde la selección), formatearlo y usarlo
+      const formattedLines = formatDialogueText(providedText);
+      const formattedText = formattedLines.join("\n");
+      setExtractedText(formattedText);
+      // Si hay imagen de fondo, generar automáticamente
+      if (backgroundImage) {
+        setTimeout(() => {
+          combineTextWithBackground();
+        }, 100);
+      }
+      return;
+    }
+
+    // Si no se proporciona texto, extraerlo de la imagen
     if (!imageWithText) {
       alert("Por favor, sube primero la imagen con texto");
       return;
@@ -239,29 +408,105 @@ export default function Home() {
 
   const downloadImage = () => {
     if (!combinedImage) return;
-    const link = document.createElement("a");
-    link.download = "imagen-combinada.png";
-    link.href = combinedImage;
-    link.click();
+    setShowDownloadModal(true);
+  };
+
+  const handleDownloadWithSize = (width: number, height: number) => {
+    if (!combinedImage) return;
+
+    if (width === 0 || height === 0) {
+      // Descargar imagen original sin redimensionar
+      const link = document.createElement("a");
+      link.download = "imagen-combinada.png";
+      link.href = combinedImage;
+      link.click();
+      return;
+    }
+
+    // Redimensionar imagen
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Dibujar la imagen redimensionada
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convertir a blob y descargar
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = `imagen-combinada-${width}x${height}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    };
+    img.src = combinedImage;
   };
 
   return (
-    <div className="w-full h-screen flex flex-row bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <Sidebar
-        imageWithText={imageWithText}
-        backgroundImage={backgroundImage}
-        extractedText={extractedText}
-        combinedImage={combinedImage}
-        isProcessing={isProcessing}
-        textConfig={textConfig}
-        onImageWithTextChange={setImageWithText}
-        onBackgroundImageChange={setBackgroundImage}
-        onExtractText={handleExtractText}
-        onTextConfigChange={setTextConfig}
-        onCombine={combineTextWithBackground}
-        onDownload={downloadImage}
+    <div className="w-full h-screen flex flex-col bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      
+      {/* Contenido principal: Sidebar + ImageViewer + TextSidebar */}
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0 py-10">
+        <Sidebar
+          imageWithText={imageWithText}
+          backgroundImage={backgroundImage}
+          extractedText={extractedText}
+          combinedImage={combinedImage}
+          isProcessing={isProcessing}
+          onImageWithTextChange={setImageWithText}
+          onBackgroundImageChange={setBackgroundImage}
+          onExtractText={handleExtractText}
+          onCombine={combineTextWithBackground}
+          onDownload={downloadImage}
+        />
+        <ImageViewer combinedImage={combinedImage} />
+        <TextSidebar
+          imageWithText={imageWithText}
+          backgroundImage={backgroundImage}
+          extractedText={extractedText}
+          textBlocks={textBlocks}
+          onOpenModal={setOpenTextModal}
+        />
+      </div>
+
+  
+
+      {/* Modal de descarga */}
+      <DownloadModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        onDownload={handleDownloadWithSize}
+        currentImage={combinedImage}
       />
-      <ImageViewer combinedImage={combinedImage} />
+
+      {/* Modal de selección de texto */}
+      <TextSelectionModal
+        isOpen={openTextModal === "textSelection"}
+        onClose={() => setOpenTextModal(null)}
+        textBlocks={textBlocks}
+        isExtractingText={isExtractingText}
+        isProcessing={isProcessing}
+        onToggleBlockSelection={toggleBlockSelection}
+        onApplySelectedText={handleApplySelectedText}
+        onAutoMode={handleAutoMode}
+      />
+
+      {/* Modal de configuración de texto */}
+      <TextConfigModal
+        isOpen={openTextModal === "textConfig"}
+        onClose={() => setOpenTextModal(null)}
+        textConfig={textConfig}
+        onTextConfigChange={setTextConfig}
+      />
     </div>
   );
 }
