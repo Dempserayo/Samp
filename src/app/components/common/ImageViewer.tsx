@@ -7,9 +7,10 @@ interface ImageViewerProps {
   combinedImages: string[];
   currentImageIndex: number;
   onImageChange: (index: number) => void;
+  onAddNewImage: () => void;
 }
 
-export default function ImageViewer({ combinedImages, currentImageIndex, onImageChange }: ImageViewerProps) {
+export default function ImageViewer({ combinedImages, currentImageIndex, onImageChange, onAddNewImage }: ImageViewerProps) {
   const [isZoomed, setIsZoomed] = useState(false);
   
   const currentImage = currentImageIndex >= 0 && currentImageIndex < combinedImages.length 
@@ -108,6 +109,22 @@ export default function ImageViewer({ combinedImages, currentImageIndex, onImage
                 )}
               </button>
             ))}
+            {/* Botón para agregar nueva imagen (solo si hay menos de 5) */}
+            {combinedImages.length < 5 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddNewImage();
+                }}
+                className="relative w-10 h-10 overflow-hidden border-2 border-dashed border-white/40 hover:border-white/70 transition-all duration-300 transform hover:scale-105 flex items-center justify-center bg-black/20 hover:bg-black/40"
+                aria-label="Agregar nueva imagen"
+                title="Generar nueva imagen"
+              >
+                <svg className="w-6 h-6 text-white/70 hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -128,7 +145,7 @@ export default function ImageViewer({ combinedImages, currentImageIndex, onImage
           </div>
           <button
             onClick={() => setIsZoomed(false)}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors bg-black/50 rounded-full p-2 hover:bg-black/70"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors bg-black/50  p-2 hover:bg-black/70"
             aria-label="Cerrar zoom"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

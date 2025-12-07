@@ -26,7 +26,7 @@ export default function Home() {
   const [textBlocks, setTextBlocks] = useState<TextBlock[]>([]);
   const [isExtractingText, setIsExtractingText] = useState(false);
   const [textConfig, setTextConfig] = useState<TextConfig>({
-    fontSize: 16,
+    fontSize: 10,
     color: "#FFFFFF",
     position: "left-bottom",
     maxWidth: 800,
@@ -362,7 +362,12 @@ export default function Home() {
           const shouldCreateNew = createNew || prevIndex < 0 || prevIndex >= prevImages.length;
           
           if (shouldCreateNew) {
-            // Crear una nueva imagen - el índice se actualizará después
+            // Verificar límite de 5 imágenes
+            if (prevImages.length >= 5) {
+              // Si ya hay 5 imágenes, no crear más
+              return prevImages;
+            }
+            // Crear una nueva imagen
             return [...prevImages, resultImage];
           } else {
             // Actualizar la imagen actual
@@ -373,6 +378,8 @@ export default function Home() {
         });
         
         // Actualizar el índice solo si se crea una nueva imagen
+        // El índice ya se actualizó dentro del callback de setCombinedImages
+        // Solo necesitamos retornar el valor correcto
         const shouldCreateNew = createNew || prevIndex < 0;
         return shouldCreateNew ? (prevIndex < 0 ? 0 : prevIndex + 1) : prevIndex;
       });
@@ -557,6 +564,7 @@ export default function Home() {
           combinedImages={combinedImages}
           currentImageIndex={currentImageIndex}
           onImageChange={setCurrentImageIndex}
+          onAddNewImage={() => combineTextWithBackground(true)}
         />
       </div>
 
