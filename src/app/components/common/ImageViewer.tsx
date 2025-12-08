@@ -65,9 +65,8 @@ export default function ImageViewer({ combinedImages, currentImageIndex, onImage
           )}
         </div>
 
-        {/* Galería de miniaturas */}
         {combinedImages.length > 0 && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-3 max-h-[40vh] overflow-y-auto p-2 bg-gradient-to-b from-black/40 via-black/50 to-black/40 backdrop-blur-md shadow-2xl border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-3 max-h-[40vh] overflow-y-auto p-2 bg-linear-to-b from-black/40 via-black/50 to-black/40 backdrop-blur-md shadow-2xl border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             {combinedImages.map((image, index) => (
               <button
                 key={index}
@@ -91,25 +90,21 @@ export default function ImageViewer({ combinedImages, currentImageIndex, onImage
                   }`}
                   unoptimized
                 />
-                {/* Overlay con gradiente */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 ${
+                <div className={`absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 ${
                   index === currentImageIndex ? "opacity-100" : "opacity-60"
-                }`} />
-                {/* Número de imagen */}
+                  }`} />
                 <div className={`absolute bottom-0 left-0 right-0 text-white text-xs font-semibold text-center py-1.5 transition-all duration-300 ${
                   index === currentImageIndex 
-                    ? "bg-gradient-to-t from-blue-500/90 to-blue-400/70" 
-                    : "bg-gradient-to-t from-black/80 to-black/60"
-                }`}>
+                    ? "bg-linear-to-t from-blue-500/90 to-blue-400/70" 
+                    : "bg-linear-to-t from-black/80 to-black/60"
+                  }`}>
                   {index + 1}
                 </div>
-                {/* Indicador de selección */}
                 {index === currentImageIndex && (
                   <div className="absolute top-1 right-1 w-3 h-3 bg-blue-400 ring-2 ring-white shadow-lg animate-pulse" />
                 )}
               </button>
             ))}
-            {/* Botón para agregar nueva imagen (solo si hay menos de 5) */}
             {combinedImages.length < 5 && (
               <button
                 onClick={(e) => {

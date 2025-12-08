@@ -20,7 +20,6 @@ export default function TextConfigModal({
 }: TextConfigModalProps) {
   const [localConfig, setLocalConfig] = useState<TextConfig>(textConfig);
 
-  // Actualizar el estado local cuando cambia textConfig o se abre el modal
   useEffect(() => {
     if (isOpen) {
       setLocalConfig(textConfig);
@@ -157,7 +156,6 @@ export default function TextConfigModal({
             </div>
           </div>
 
-          {/* Botón de Guardar */}
           <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={onClose}

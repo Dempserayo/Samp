@@ -45,12 +45,10 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
         const displayWidth = img.width * newScale;
         const displayHeight = img.height * newScale;
 
-        // Calcular el offset para centrar la imagen
         const offsetX = (containerWidth - displayWidth) / 2;
         const offsetY = (containerHeight - displayHeight) / 2;
         setImageOffset({ x: offsetX, y: offsetY });
 
-        // Inicializar área de recorte al 80% del tamaño de la imagen, centrada
         setCropArea({
           x: offsetX + displayWidth * 0.1,
           y: offsetY + displayHeight * 0.1,
@@ -68,7 +66,6 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Verificar si el clic está dentro del área de recorte
     if (
       x >= cropArea.x &&
       x <= cropArea.x + cropArea.width &&
@@ -92,7 +89,6 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
     let newX = x - dragStart.x;
     let newY = y - dragStart.y;
 
-    // Limitar el área de recorte dentro de los límites de la imagen
     newX = Math.max(imageOffset.x, Math.min(newX, imageOffset.x + displayWidth - cropArea.width));
     newY = Math.max(imageOffset.y, Math.min(newY, imageOffset.y + displayHeight - cropArea.height));
 
@@ -160,14 +156,11 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
 
     const img = new Image();
     img.onload = () => {
-      // Calcular las coordenadas reales en la imagen original
-      // Restar el offset de la imagen antes de calcular las coordenadas reales
       const realX = ((cropArea.x - imageOffset.x) / scale);
       const realY = ((cropArea.y - imageOffset.y) / scale);
       const realWidth = (cropArea.width / scale);
       const realHeight = (cropArea.height / scale);
 
-      // Asegurar que las coordenadas estén dentro de los límites de la imagen
       const clampedX = Math.max(0, Math.min(realX, img.width));
       const clampedY = Math.max(0, Math.min(realY, img.height));
       const clampedWidth = Math.max(1, Math.min(realWidth, img.width - clampedX));
@@ -240,7 +233,6 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
               }}
             />
             
-            {/* Overlay oscuro */}
             <div
               className="absolute bg-black/50"
               style={{
@@ -278,7 +270,6 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
               }}
             />
 
-            {/* Área de recorte */}
             <div
               className="absolute border-2 border-blue-500 cursor-move"
               style={{
@@ -288,7 +279,15 @@ export default function CropModal({ isOpen, onClose, imageSrc, onCrop }: CropMod
                 height: `${cropArea.height}px`,
               }}
             >
-              {/* Esquinas redimensionables */}
+              <div
+              className="absolute border-2 border-blue-500 cursor-move"
+              style={{
+                left: `${cropArea.x}px`,
+                top: `${cropArea.y}px`,
+                width: `${cropArea.width}px`,
+                height: `${cropArea.height}px`,
+              }}
+            >
               <div
                 className="absolute -top-1 -left-1 w-4 h-4 bg-blue-500 border-2 border-white rounded-full cursor-nwse-resize"
                 onMouseDown={(e) => handleResize("nw", e)}

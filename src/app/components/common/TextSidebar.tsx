@@ -22,14 +22,12 @@ export default function TextSidebar({
   onOpenModal,
 }: TextSidebarProps) {
 
-  // Solo mostrar el sidebar si hay imagen de texto Y de fondo
   if (!imageWithText || !backgroundImage) {
     return null;
   }
 
   return (
     <div className="w-20 h-full flex flex-col items-center justify-start p-4 gap-4 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border-l border-slate-200 dark:border-slate-700 shadow-2xl">
-      {/* Botón: Selección de Texto */}
       {textBlocks.length > 0 && (
         <button
           onClick={() => onOpenModal("textSelection")}
@@ -42,7 +40,6 @@ export default function TextSidebar({
         </button>
       )}
 
-      {/* Botón: Configuración del Texto */}
       {extractedText && (
         <button
           onClick={() => onOpenModal("textConfig")}

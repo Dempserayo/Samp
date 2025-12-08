@@ -33,10 +33,8 @@ export default function DownloadModal({
   const [customHeight, setCustomHeight] = useState<string>("");
   const [useCustom, setUseCustom] = useState(false);
 
-  // Resetear al abrir el modal
   useEffect(() => {
     if (!isOpen) return;
-    // Use startTransition to avoid sync setState warning and cascading renders
     import("react").then(({ startTransition }) => {
       startTransition(() => {
         setSelectedSize({ width: 0, height: 0 });
@@ -61,7 +59,6 @@ export default function DownloadModal({
     if (width > 0 && height > 0) {
       onDownload(width, height);
     } else {
-      // Si es tamaño original, descargar sin redimensionar
       onDownload(0, 0);
     }
     onClose();

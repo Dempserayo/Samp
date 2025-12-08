@@ -86,7 +86,6 @@ export default function TextSelectionModal({
           </div>
 
           <div className="space-y-4">
-            {/* Modo automático */}
             <div className="flex flex-col gap-2">
               <button
                 onClick={onAutoMode}
@@ -103,7 +102,6 @@ export default function TextSelectionModal({
               </p>
             </div>
 
-            {/* Selector de bloques */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">

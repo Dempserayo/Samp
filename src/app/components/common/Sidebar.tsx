@@ -66,17 +66,13 @@ export default function Sidebar({
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => {
-      // Si la sección que se está abriendo ya está abierta, cerrarla
-      // Si se está abriendo una nueva, cerrar todas las demás y abrir solo esa
       const isCurrentlyOpen = prev[section];
       if (isCurrentlyOpen) {
-        // Cerrar la sección actual
         return {
           ...prev,
           [section]: false,
         };
       } else {
-        // Cerrar todas las secciones y abrir solo la seleccionada
         return {
           ayuda: false,
           images: false,
@@ -156,8 +152,7 @@ export default function Sidebar({
   };
 
   return (
-    <div className={`${isOpen ? 'w-[400px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm shadow-2xl overflow-hidden transition-all duration-300 relative`}>
-      {/* Botón de toggle */}
+    <div         className={`${isOpen ? 'w-[400px]' : 'w-20'} h-full flex flex-col justify-between bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm shadow-2xl overflow-hidden transition-all duration-300 relative`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`absolute ${isOpen ? 'top-4 right-4' : 'top-4 left-1/2 -translate-x-1/2'} z-50 p-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600  transition-all duration-300 `}
@@ -195,7 +190,6 @@ export default function Sidebar({
             </p>
           </div>
 
-        {/* Sección: Ayuda */}
         <div className="border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => toggleSection("ayuda")}
@@ -275,7 +269,6 @@ export default function Sidebar({
           )}
         </div>
         
-        {/* Sección: Imágenes */}
         <div className="border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             onClick={() => toggleSection("images")}
@@ -300,7 +293,6 @@ export default function Sidebar({
           </button>
           {openSections.images && (
             <div className="p-4 space-y-4 ">
-              {/* Input para imagen con texto */}
               <div className="flex flex-col gap-3">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Imagen con Texto</label>
                 <input
@@ -345,7 +337,6 @@ export default function Sidebar({
                 )}
               </div>
               
-              {/* Input para imagen de fondo */}
               <div className="flex flex-col gap-3">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Imagen de Fondo</label>
                 <input
@@ -369,7 +360,6 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Sección: Acciones */}
         {extractedText && (
           <div className="border border-slate-200 dark:border-slate-700  overflow-hidden">
             <button
@@ -395,7 +385,6 @@ export default function Sidebar({
             </button>
             {openSections.actions && (
               <div className="p-4 space-y-3">
-                {/* Botón: Selección de Texto */}
                 {textBlocks.length > 0 && (
                   <button
                     onClick={() => onOpenModal("textSelection")}
@@ -409,7 +398,6 @@ export default function Sidebar({
                   </button>
                 )}
 
-                {/* Botón: Configuración del Texto */}
                 {extractedText && (
                   <button
                     onClick={() => onOpenModal("textConfig")}
@@ -485,7 +473,6 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Sección: Texto Extraído */}
       {isOpen && extractedText && (
         <div className="border-t border-slate-200 dark:border-slate-700">
           <button
@@ -525,7 +512,6 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Modal de recorte */}
       {tempBackgroundImage && (
         <CropModal
           isOpen={showCropModal}
